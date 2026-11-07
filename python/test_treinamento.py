@@ -1,14 +1,3 @@
-"""
-Criterios de aceite da squad 3. Rodar:  BASE_DIR=./base python -m unittest -v
-
-CA1  Os tres casos abertos do enunciado batem (N = 1, 5 e 10; junho).
-CA2  Os defeitos da base (D3, D4, D5) nao mudam o resultado: dados sujos = dados limpos.
-CA3  Limite de faixa: 250 mil entra na faixa B (inferior inclusivo, superior exclusivo).
-CA4  Fazenda abaixo de 250 mil nao reduz CCS e o ganho dela e -R$ 850.
-CA5  Duas fazendas do mesmo tanque: o Nivel 2 soma duas vezes, o Nivel 3 nao.
-CA6  Desempate deterministico e N invalido gera erro claro.
-CA7  Na base real, o tratamento descarta/converte o que o dicionario lista.
-"""
 import os
 import shutil
 import tempfile
@@ -38,10 +27,6 @@ def escrever_base(pasta, fazendas, coletas, analises):
     w("analises.csv", "analise_id;data;origem_tipo;origem_id;ccs;ccs_unidade\n" +
       "".join(f"A{i};{d};fazenda;{fz};{c};{u}\n" for i, (d, fz, c, u) in enumerate(analises)))
 
-
-# Tanque TX: A e B identicas (50.000 + 50.000 L cada, CCS 650 -> faixa D).
-# Treinar uma sobe o tanque para a faixa C (+0,05/L x 200.000 L = R$ 10.000).
-# Treinar a outra depois nao muda a faixa (C continua C).
 FAZ = [("A", "TX"), ("B", "TX"), ("C", "TY")]
 COL_LIMPAS = [("2026-06-10", "A", 50000, "L"), ("2026-06-20", "A", 50000, "L"),
               ("2026-06-10", "B", 50000, "L"), ("2026-06-20", "B", 50000, "L"),
@@ -64,15 +49,15 @@ class BaseSintetica(unittest.TestCase):
 class TestRegras(BaseSintetica):
     def test_ca2_defeitos_nao_mudam_o_resultado(self):
         _, limpo, _ = self.rodar()
-        sujas = [("2026-06-10", "A", 51600, "KG"),               # D5: 51600 kg = 50000 L
+        sujas = [("2026-06-10", "A", 51600, "KG"),
                  ("2026-06-20", "A", 50000, "L"),
                  ("2026-06-10", "B", 50000, "L"), ("2026-06-20", "B", 50000, "L"),
                  ("2026-06-15", "C", 1000, "L"),
-                 ("2026-02-30", "A", 999999, "L"),                # D3: data impossivel
-                 ("0000-00-00", "B", 999999, "L"),                # D3
-                 ("2027-13-05", "B", 999999, "L"),                # D3
-                 ("2026-06-12", "F9999", 999999, "L")]            # D4: fazenda inexistente
-        ana = [("2026-06-05", "A", 650000, "cel_ml"),             # D5: 650000 cel/ml = 650 mil
+                 ("2026-02-30", "A", 999999, "L"),
+                 ("0000-00-00", "B", 999999, "L"),
+                 ("2027-13-05", "B", 999999, "L"),
+                 ("2026-06-12", "F9999", 999999, "L")]
+        ana = [("2026-06-05", "A", 650000, "cel_ml"),
                ("2026-06-05", "B", 650, "mil_cel_ml"), ("2026-06-05", "C", 100, "mil_cel_ml")]
         d, sujo, _ = self.rodar(sujas, ana)
         self.assertEqual([x["fazenda_id"] for x in sujo], [x["fazenda_id"] for x in limpo])
@@ -93,16 +78,16 @@ class TestRegras(BaseSintetica):
 
     def test_ca5_dupla_contagem(self):
         _, n2, n3 = self.rodar()
-        self.assertEqual(n2[0]["ganho_liquido"], 9150.0)   # 0,05 x 200.000 - 850
-        self.assertEqual(n2[1]["ganho_liquido"], 9150.0)   # isolado, parece igual
+        self.assertEqual(n2[0]["ganho_liquido"], 9150.0)
+        self.assertEqual(n2[1]["ganho_liquido"], 9150.0)
         self.assertEqual(n2[1]["ganho_acumulado"], 18300.0)
         self.assertEqual(n3[0]["ganho_marginal"], 9150.0)
-        self.assertEqual(n3[1]["ganho_marginal"], -850.0)  # tanque ja subiu: so paga o custo
+        self.assertEqual(n3[1]["ganho_marginal"], -850.0)
         self.assertEqual(n3[1]["ganho_acumulado_real"], 8300.0)
 
     def test_ca6_desempate_e_n_invalido(self):
         _, n2, _ = self.rodar()
-        self.assertEqual([x["fazenda_id"] for x in n2[:2]], ["A", "B"])  # empate -> id
+        self.assertEqual([x["fazenda_id"] for x in n2[:2]], ["A", "B"])
         for n in (0, -1, 4, 2.5):
             with self.assertRaises(ValueError):
                 t.validar_n(n, 3)
@@ -122,11 +107,11 @@ class TestBaseReal(unittest.TestCase):
 
     def test_ca7_defeitos_da_base_real(self):
         d = self.dados.defeitos
-        self.assertEqual(d.datas_invalidas, 160)       # D3
-        self.assertEqual(d.coletas_orfas, 140)         # D4
-        self.assertEqual(d.coletas_em_kg, 380)         # D5
+        self.assertEqual(d.datas_invalidas, 160)
+        self.assertEqual(d.coletas_orfas, 140)
+        self.assertEqual(d.coletas_em_kg, 380)
         self.assertEqual(len(self.dados.fazendas), 950)
-        self.assertEqual(d.fazendas_sem_dados, 12)     # as F9xxx
+        self.assertEqual(d.fazendas_sem_dados, 12)
 
     def test_nivel3_nunca_passa_do_nivel2(self):
         for a, b in zip(self.n2[:40], self.n3):
