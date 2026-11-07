@@ -1,21 +1,3 @@
-"""
-Squad 3 - Onde o treinamento rende mais
-A3 - Estruturas de Dados e Analise de Algoritmos
-
-Pergunta: com N treinamentos no orcamento, quais fazendas treinar e quanto a
-cooperativa ganha, ja descontado o custo?
-
-Estruturas de dados escolhidas (justificativa no documento de requisitos):
-  - fazendas : dict  fazenda_id -> Fazenda(ccs, volume, tanque)       acesso O(1)
-  - tanques  : dict  tanque_id  -> Tanque(volume V, soma S, membros)
-               S = soma(volume x CCS). O CCS ponderado do tanque e S / V.
-               Guardar (V, S) permite simular um treinamento em O(1): so S muda,
-               S' = S - volume_da_fazenda x queda_de_CCS_da_fazenda.
-  - faixas / efeitos : listas ordenadas pelo limite inferior (4 linhas)
-  - heap (heapq) com invalidacao preguicosa, para o Nivel 3
-
-Apenas biblioteca padrao: csv, heapq, datetime, dataclasses.
-"""
 import argparse
 import csv
 import heapq
@@ -25,38 +7,34 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 
-KG_POR_LITRO = 1.032  # 1 L = 1,032 kg (dicionario de dados)
-N_MAX_PADRAO = 40     # o painel permite escolher N de 1 a 40
+KG_POR_LITRO = 1.032
+N_MAX_PADRAO = 40
 
-
-# --------------------------------------------------------------------------
-# Estruturas
-# --------------------------------------------------------------------------
 @dataclass
 class Fazenda:
     id: str
     tanque: str
-    ccs: float = None      # mil celulas/ml, no mes de referencia
-    volume: float = 0.0    # litros, no mes de referencia
+    ccs: float = None
+    volume: float = 0.0
 
 
 @dataclass
 class Tanque:
     id: str
     tipo: str = "n/d"
-    membros: list = field(default_factory=list)  # ids das fazendas elegiveis
-    volume: float = 0.0                          # V
-    soma: float = 0.0                            # S = soma(volume x CCS)
+    membros: list = field(default_factory=list)
+    volume: float = 0.0
+    soma: float = 0.0
 
 
 @dataclass
 class Defeitos:
     """Contagem do que o tratamento descartou ou converteu (criterio de aceite)."""
-    datas_invalidas: int = 0       # D3: coleta cuja data nao vira data
-    coletas_orfas: int = 0         # D4: coleta com fazenda inexistente
-    coletas_em_kg: int = 0         # D5: volume convertido de kg para litros
-    analises_em_cel_ml: int = 0    # D5: CCS convertido de cel/ml para mil cel/ml
-    fazendas_sem_dados: int = 0    # sem coleta ou sem analise no mes de referencia
+    datas_invalidas: int = 0
+    coletas_orfas: int = 0
+    coletas_em_kg: int = 0
+    analises_em_cel_ml: int = 0
+    fazendas_sem_dados: int = 0
 
 
 @dataclass
@@ -83,10 +61,6 @@ class Simulacao:
     liquido: float
     nova_soma: float
 
-
-# --------------------------------------------------------------------------
-# Leitura e tratamento da base
-# --------------------------------------------------------------------------
 def ler(base, nome):
     with open(os.path.join(base, nome), encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f, delimiter=";"))
@@ -101,7 +75,6 @@ def parse_data(texto):
 
 
 def carregar(base, mes=None):
-    # Tabelas de referencia (lidas dos CSVs, nada fixo no codigo)
     faixas = sorted(
         (float(r["ccs_min_mil"]), float(r["ccs_max_mil"]),
          float(r["bonus_reais_por_litro"]), r["faixa"])
@@ -120,14 +93,13 @@ def carregar(base, mes=None):
         aviso = "custo_treinamento de parametros.csv difere de efeito_treinamento.csv"
 
     tipos = {}
-    if os.path.exists(os.path.join(base, "tanques.csv")):  # so apoio ao painel
+    if os.path.exists(os.path.join(base, "tanques.csv")):
         tipos = {r["tanque_id"]: r["tipo"] for r in ler(base, "tanques.csv")}
 
     fazendas = {r["fazenda_id"]: Fazenda(r["fazenda_id"], r["tanque_id"])
                 for r in ler(base, "fazendas.csv")}
     d = Defeitos()
 
-    # Volume da fazenda no mes: soma das coletas validas, em litros
     for r in ler(base, "coletas.csv"):
         data = parse_data(r["data"])
         if data is None:
@@ -143,7 +115,6 @@ def carregar(base, mes=None):
         if inicio <= data <= fim and data.month == mes:
             fazendas[r["fazenda_id"]].volume += litros
 
-    # CCS da fazenda no mes: analise do mes, em mil celulas/ml (a mais recente)
     recente = {}
     for r in ler(base, "analises.csv"):
         data = parse_data(r["data"])
@@ -158,7 +129,6 @@ def carregar(base, mes=None):
             recente[f.id] = data
             f.ccs = ccs
 
-    # Elegiveis: tem volume e CCS no mes. Monta os tanques com (V, S).
     elegiveis = {fid: f for fid, f in fazendas.items() if f.volume > 0 and f.ccs is not None}
     d.fazendas_sem_dados = len(fazendas) - len(elegiveis)
     tanques = {}
@@ -169,10 +139,6 @@ def carregar(base, mes=None):
         t.soma += f.volume * f.ccs
     return Dados(elegiveis, tanques, faixas, efeitos, d, mes, aviso)
 
-
-# --------------------------------------------------------------------------
-# Regras de negocio
-# --------------------------------------------------------------------------
 def linha_da_tabela(tabela, ccs):
     """Limite inferior inclusivo e superior exclusivo."""
     if ccs < tabela[0][0]:
@@ -190,7 +156,7 @@ def simular(f, V, S, faixas, efeitos):
     S_pos = S - f.volume * (f.ccs - ccs_pos)
     antes, depois = S / V, S_pos / V
     fa, fd = linha_da_tabela(faixas, antes), linha_da_tabela(faixas, depois)
-    ganho_bonus = (fd[2] - fa[2]) * V   # R$ por mes: novo bonus por litro x volume do tanque
+    ganho_bonus = (fd[2] - fa[2]) * V 
     return Simulacao(reducao, ccs_pos, antes, depois, fa[3], fd[3],
                      round(ganho_bonus, 2), custo, round(ganho_bonus - custo, 2), S_pos)
 
@@ -199,10 +165,6 @@ def validar_n(n, total):
     if not isinstance(n, int) or n < 1 or n > total:
         raise ValueError(f"N deve ser um inteiro entre 1 e {total} (recebido: {n!r})")
 
-
-# --------------------------------------------------------------------------
-# Nivel 1: CCS, volume, queda esperada e as N de pior CCS
-# --------------------------------------------------------------------------
 def nivel1(dados):
     linhas = []
     for f in dados.fazendas.values():
@@ -215,17 +177,12 @@ def nivel1(dados):
         x["posicao_pior_ccs"] = i
     return linhas
 
-
-# --------------------------------------------------------------------------
-# Nivel 2 (exigido): ganho de cada fazenda treinada sozinha, ordenado
-# --------------------------------------------------------------------------
 def nivel2(dados):
     linhas = []
     for f in dados.fazendas.values():
         t = dados.tanques[f.tanque]
         s = simular(f, t.volume, t.soma, dados.faixas, dados.efeitos)
         linhas.append((f, t, s))
-    # ganho liquido decrescente; desempate: maior CCS, depois id (resultado deterministico)
     linhas.sort(key=lambda x: (-x[2].liquido, -x[0].ccs, x[0].id))
     saida, acumulado = [], 0.0
     for i, (f, t, s) in enumerate(linhas, 1):
@@ -242,16 +199,10 @@ def nivel2(dados):
             "custo": s.custo, "ganho_liquido": s.liquido, "ganho_acumulado": acumulado})
     return saida
 
-
-# --------------------------------------------------------------------------
-# Nivel 3 (bonus): escolha uma de cada vez, recalculando o tanque a cada passo
-# Guloso: a cada passo pega o maior ganho marginal. Nao garante o otimo global
-# (duas fazendas que so juntas fazem o tanque subir de faixa nao sao vistas).
-# --------------------------------------------------------------------------
 def nivel3(dados, n_max=N_MAX_PADRAO):
     fazendas, tanques = dados.fazendas, dados.tanques
-    soma = {tid: t.soma for tid, t in tanques.items()}     # estado atualizado
-    versao = defaultdict(int)                               # invalida entradas antigas
+    soma = {tid: t.soma for tid, t in tanques.items()}
+    versao = defaultdict(int)
     treinadas, heap, contador = set(), [], itertools.count()
     isolado = {}
 
@@ -269,7 +220,7 @@ def nivel3(dados, n_max=N_MAX_PADRAO):
         _, _, fid, ver, _, s = heapq.heappop(heap)
         f = fazendas[fid]
         if fid in treinadas or ver != versao[f.tanque]:
-            continue                       # entrada velha: o tanque mudou depois dela
+            continue
         treinadas.add(fid)
         soma[f.tanque] = s.nova_soma
         versao[f.tanque] += 1
@@ -280,15 +231,11 @@ def nivel3(dados, n_max=N_MAX_PADRAO):
             "ganho_marginal": s.liquido, "ganho_acumulado_real": acumulado,
             "faixa_tanque_antes": s.faixa_antes, "faixa_tanque_depois": s.faixa_depois,
             "muda_faixa": s.faixa_antes != s.faixa_depois})
-        for outro in tanques[f.tanque].membros:   # so o tanque afetado e recalculado
+        for outro in tanques[f.tanque].membros:
             if outro not in treinadas:
                 empurrar(fazendas[outro])
     return escolhidas
 
-
-# --------------------------------------------------------------------------
-# Saidas para o painel
-# --------------------------------------------------------------------------
 def _arredondar(v):
     return round(v, 2) if isinstance(v, float) else v
 
@@ -349,7 +296,6 @@ def main():
     print(f"  ganho acumulado (soma dos ganhos isolados): R$ {n2[a.n - 1]['ganho_acumulado']:,.2f}")
     if a.n <= len(n3):
         print(f"Nivel 3 - sequencial: ganho real acumulado R$ {n3[a.n - 1]['ganho_acumulado_real']:,.2f}")
-
 
 if __name__ == "__main__":
     main()
