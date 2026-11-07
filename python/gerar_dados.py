@@ -1,5 +1,5 @@
-"""Le os CSVs de saida/ e gera public/data.js (os dados do painel, N de 1 a 40)."""
 import csv, json, os
+
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def ler(nome):
