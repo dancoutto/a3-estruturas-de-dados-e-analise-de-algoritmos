@@ -1,8 +1,0 @@
-indicador;valor
-mes_referencia;6
-fazendas_elegiveis;950
-fazendas_sem_dados_no_mes;12
-coletas_data_invalida_descartadas;160
-coletas_fazenda_inexistente_descartadas;140
-coletas_convertidas_de_kg;380
-analises_convertidas_de_cel_ml;603
