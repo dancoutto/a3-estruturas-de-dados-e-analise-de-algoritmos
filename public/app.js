@@ -5,9 +5,9 @@ let N=10,modo="n2";
 function cls(v){return v<0?"neg":"pos"}
 function render(){
   const a=D.n2[N-1][5],b=D.n3[N-1][5],d=a-b;
-  $("nv").textContent=N;
+  $("nv").value=N;$("nv").max=$("r").max;
   $("k").innerHTML=[["Ganho do Nível 2",R.format(a)],["Ganho real (Nível 3)",R.format(b)],
-    ["Superestimativa do Nível 2",R.format(d)+" ("+(a?Math.round(100*d/a):0)+"%)"],["Investimento",N+" × R$ 850 = "+R.format(N*D.custo)]]
+    [d>=0?"Superestimativa do Nível 2":"Nível 2 abaixo do real",R.format(Math.abs(d))+" ("+Math.round(100*Math.abs(d)/Math.max(1,Math.abs(a)))+"%)"],["Investimento",N+" × R$ 850 = "+R.format(N*D.custo)]]
     .map(x=>"<div class=kpi><small>"+x[0]+"</small><b>"+x[1]+"</b></div>").join("");
   const L=D[modo].slice(0,N);
   $("th").textContent="Fazendas escolhidas, em ordem de prioridade ("+(modo=="n2"?"Nível 2":"Nível 3")+")";
@@ -20,14 +20,16 @@ function render(){
   chart();
 }
 function chart(){
-  const W=560,H=270,l=62,r=14,t=14,bm=34,m=Math.max(D.n2[39][5],D.n3[39][5])*1.05;
-  const x=n=>l+(n-1)/39*(W-l-r),y=v=>H-bm-v/m*(H-t-bm);
+  const K=+$("r").max,A=D.n2.slice(0,K),B=D.n3.slice(0,K),W=560,H=270,l=62,r=14,t=14,bm=34;
+  const all=A.concat(B).map(p=>p[5]),hi=Math.max(0,...all)*1.05,lo=Math.min(0,...all)*1.05,sp=(hi-lo)||1;
+  const x=n=>l+(n-1)/Math.max(1,K-1)*(W-l-r),y=v=>H-bm-(v-lo)/sp*(H-t-bm);
   const path=s=>s.map((p,i)=>(i?"L":"M")+x(i+1).toFixed(1)+","+y(p[5]).toFixed(1)).join("");
   let s="";
-  for(let i=0;i<=4;i++){const v=m*i/4;s+="<line x1="+l+" x2="+(W-r)+" y1="+y(v)+" y2="+y(v)+" stroke=var(--bd) /><text x="+(l-6)+" y="+(y(v)+4)+" text-anchor=end font-size=11 fill=var(--mut)>"+Math.round(v/1000)+" mil</text>"}
-  [1,10,20,30,40].forEach(n=>s+="<text x="+x(n)+" y="+(H-bm+16)+" text-anchor=middle font-size=11 fill=var(--mut)>"+n+"</text>");
+  for(let i=0;i<=4;i++){const v=lo+sp*i/4;s+="<line x1="+l+" x2="+(W-r)+" y1="+y(v)+" y2="+y(v)+" stroke=var(--bd) /><text x="+(l-6)+" y="+(y(v)+4)+" text-anchor=end font-size=11 fill=var(--mut)>"+Math.round(v/1000)+" mil</text>"}
+  if(lo<0)s+="<line x1="+l+" x2="+(W-r)+" y1="+y(0)+" y2="+y(0)+" stroke=var(--mut) />";
+  [1,K/4,K/2,3*K/4,K].map(Math.round).forEach(n=>s+="<text x="+x(n)+" y="+(H-bm+16)+" text-anchor=middle font-size=11 fill=var(--mut)>"+n+"</text>");
   s+="<text x="+((l+W-r)/2)+" y="+(H-4)+" text-anchor=middle font-size=11 fill=var(--mut)>treinamentos (N)</text>";
-  s+="<path d=\""+path(D.n2)+"\" fill=none stroke=var(--a) stroke-width=2.5 /><path d=\""+path(D.n3)+"\" fill=none stroke=var(--b) stroke-width=2.5 />";
+  s+="<path d=\""+path(A)+"\" fill=none stroke=var(--a) stroke-width=2.5 /><path d=\""+path(B)+"\" fill=none stroke=var(--b) stroke-width=2.5 />";
   s+="<line x1="+x(N)+" x2="+x(N)+" y1="+t+" y2="+(H-bm)+" stroke=var(--mut) stroke-dasharray=4 />";
   s+="<circle cx="+x(N)+" cy="+y(D.n2[N-1][5])+" r=5 fill=var(--a) /><circle cx="+x(N)+" cy="+y(D.n3[N-1][5])+" r=5 fill=var(--b) />";
   $("c").innerHTML=s;
@@ -54,4 +56,11 @@ render();
   rotulo();
   b.addEventListener("click",function(){var n=atual()=="dark"?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("tema",n)}catch(e){}rotulo()});
   if(mq.addEventListener)mq.addEventListener("change",rotulo);
+})();
+
+(function(){
+  function ampliar(on){var r=$("r");r.max=on?D.n2.length:40;$("ext").checked=on;if(N>+r.max){N=+r.max;r.value=N}}
+  $("ext").addEventListener("change",function(e){ampliar(e.target.checked);render()});
+  $("nv").addEventListener("input",function(e){var v=Math.round(+e.target.value);if(!v)return;
+    if(v>40&&!$("ext").checked)ampliar(true);N=Math.min(Math.max(v,1),+$("r").max);$("r").value=N;render()});
 })();

@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 KG_POR_LITRO = 1.032  # 1 L = 1,032 kg (dicionario de dados)
-N_MAX_PADRAO = 40     # o painel permite escolher N de 1 a 40
+N_MAX_PADRAO = 950    # painel: 1 a 40 (enunciado), ampliavel ate o total de elegiveis
 
 
 # --------------------------------------------------------------------------
@@ -225,8 +225,9 @@ def nivel2(dados):
         t = dados.tanques[f.tanque]
         s = simular(f, t.volume, t.soma, dados.faixas, dados.efeitos)
         linhas.append((f, t, s))
-    # ganho liquido decrescente; desempate: maior CCS, depois id (resultado deterministico)
-    linhas.sort(key=lambda x: (-x[2].liquido, -x[0].ccs, x[0].id))
+    # ganho liquido decrescente; desempate: maior queda do CCS do tanque (mais folga dentro da
+    # faixa nova), depois maior CCS da fazenda, depois id (resultado deterministico)
+    linhas.sort(key=lambda x: (-x[2].liquido, -(x[2].ccs_tanque_antes - x[2].ccs_tanque_depois), -x[0].ccs, x[0].id))
     saida, acumulado = [], 0.0
     for i, (f, t, s) in enumerate(linhas, 1):
         acumulado = round(acumulado + s.liquido, 2)
@@ -258,7 +259,7 @@ def nivel3(dados, n_max=N_MAX_PADRAO):
     def empurrar(f):
         t = tanques[f.tanque]
         s = simular(f, t.volume, soma[t.id], dados.faixas, dados.efeitos)
-        heapq.heappush(heap, (-s.liquido, -f.ccs, f.id, versao[t.id], next(contador), s))
+        heapq.heappush(heap, (-s.liquido, -(s.ccs_tanque_antes - s.ccs_tanque_depois), -f.ccs, f.id, versao[t.id], next(contador), s))
         return s
 
     for f in fazendas.values():
@@ -266,7 +267,7 @@ def nivel3(dados, n_max=N_MAX_PADRAO):
 
     escolhidas, acumulado = [], 0.0
     while heap and len(escolhidas) < n_max:
-        _, _, fid, ver, _, s = heapq.heappop(heap)
+        _, _, _, fid, ver, _, s = heapq.heappop(heap)
         f = fazendas[fid]
         if fid in treinadas or ver != versao[f.tanque]:
             continue                       # entrada velha: o tanque mudou depois dela

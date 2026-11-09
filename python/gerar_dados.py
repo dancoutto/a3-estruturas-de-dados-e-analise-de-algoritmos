@@ -1,5 +1,5 @@
+"""Le os CSVs de saida/ e gera public/data.js (os dados do painel, todos os N)."""
 import csv, json, os
-
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def ler(nome):
@@ -8,10 +8,10 @@ def ler(nome):
 
 n2 = [[int(r["posicao"]), r["fazenda_id"], r["tanque_id"], round(float(r["ccs_atual"]), 1),
        float(r["ganho_liquido"]), float(r["ganho_acumulado"]), r["faixa_antes"], r["faixa_depois"]]
-      for r in ler("nivel2_ranking.csv")[:40]]
+      for r in ler("nivel2_ranking.csv")]
 n3 = [[int(r["passo"]), r["fazenda_id"], r["tanque_id"], round(float(r["ccs_atual"]), 1),
        float(r["ganho_marginal"]), float(r["ganho_acumulado_real"]),
-       r["faixa_tanque_antes"], r["faixa_tanque_depois"]] for r in ler("nivel3_sequencial.csv")[:40]]
+       r["faixa_tanque_antes"], r["faixa_tanque_depois"]] for r in ler("nivel3_sequencial.csv")]
 dados = json.dumps({"n2": n2, "n3": n3, "custo": 850}, separators=(",", ":"))
 with open(os.path.join(RAIZ, "public", "data.js"), "w", encoding="utf-8") as f:
     f.write("window.DATA=" + dados + ";\n")

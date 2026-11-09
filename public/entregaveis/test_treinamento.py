@@ -6,7 +6,7 @@ CA2  Os defeitos da base (D3, D4, D5) nao mudam o resultado: dados sujos = dados
 CA3  Limite de faixa: 250 mil entra na faixa B (inferior inclusivo, superior exclusivo).
 CA4  Fazenda abaixo de 250 mil nao reduz CCS e o ganho dela e -R$ 850.
 CA5  Duas fazendas do mesmo tanque: o Nivel 2 soma duas vezes, o Nivel 3 nao.
-CA6  Desempate deterministico e N invalido gera erro claro.
+CA6  Desempate deterministico (maior queda do CCS do tanque) e N invalido gera erro claro.
 CA7  Na base real, o tratamento descarta/converte o que o dicionario lista.
 """
 import os
@@ -99,6 +99,19 @@ class TestRegras(BaseSintetica):
         self.assertEqual(n3[0]["ganho_marginal"], 9150.0)
         self.assertEqual(n3[1]["ganho_marginal"], -850.0)  # tanque ja subiu: so paga o custo
         self.assertEqual(n3[1]["ganho_acumulado_real"], 8300.0)
+
+    def test_ca6_desempate_pela_queda_do_ccs_do_tanque(self):
+        # A: 120.000 L, CCS 640 (tanque cai 115,2). B: 80.000 L, CCS 700 (tanque cai 84).
+        # Os dois sobem o tanque para a faixa C (mesmo ganho). Vence a maior queda: A, mesmo B tendo CCS maior.
+        col = [("2026-06-10", "A", 60000, "L"), ("2026-06-20", "A", 60000, "L"),
+               ("2026-06-10", "B", 40000, "L"), ("2026-06-20", "B", 40000, "L")]
+        ana = [("2026-06-05", "A", 640, "mil_cel_ml"), ("2026-06-05", "B", 700, "mil_cel_ml")]
+        escrever_base(self.tmp, [("A", "TX"), ("B", "TX")], col, ana)
+        d = t.carregar(self.tmp)
+        n2, n3 = t.nivel2(d), t.nivel3(d, 2)
+        self.assertEqual(n2[0]["ganho_liquido"], n2[1]["ganho_liquido"])
+        self.assertEqual([x["fazenda_id"] for x in n2], ["A", "B"])
+        self.assertEqual(n3[0]["fazenda_id"], "A")
 
     def test_ca6_desempate_e_n_invalido(self):
         _, n2, _ = self.rodar()
