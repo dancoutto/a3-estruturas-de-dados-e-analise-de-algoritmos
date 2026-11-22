@@ -1,11 +1,11 @@
 const D=window.DATA;
 const R=new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"});
 const $=id=>document.getElementById(id);
-let N=10,modo="n2";
+let N=1,modo="n2";
 function cls(v){return v<0?"neg":"pos"}
 function render(){
   const a=D.n2[N-1][5],b=D.n3[N-1][5],d=a-b;
-  $("nv").value=N;$("nv").max=$("r").max;
+  $("r").value=N;$("nv").value=N;$("nv").max=$("r").max;
   $("k").innerHTML=[["Ganho do Nível 2",R.format(a)],["Ganho real (Nível 3)",R.format(b)],
     [d>=0?"Superestimativa do Nível 2":"Nível 2 abaixo do real",R.format(Math.abs(d))+" ("+Math.round(100*Math.abs(d)/Math.max(1,Math.abs(a)))+"%)"],["Investimento",N+" × R$ 850 = "+R.format(N*D.custo)]]
     .map(x=>"<div class=kpi><small>"+x[0]+"</small><b>"+x[1]+"</b></div>").join("");
