@@ -14,7 +14,7 @@ Sistema de apoio à decisão e painel interativo desenvolvido pela **Squad 3** p
 
 * **Aplicação Web & Entregáveis:** [rendeleite.vercel.app](https://rendeleite.vercel.app)
 * **Pitch Gravado (Streaming):** [youtu.be/Xfx_Hy3cWc4](https://youtu.be/Xfx_Hy3cWc4)
-* **Pitch Gravado (Download MP4 · 195 MB):** [Release v1.0-final](https://github.com/dancoutto/a3-estruturas-de-dados-e-analise-de-algoritmos/releases/tag/v1.0-final)
+* **Pitch Gravado (Download MP4 · 195 MB):** [Release v1.0-final](https://github.com/dancoutto/rendeleite/releases/tag/v1.0-final)
 
 ---
 
