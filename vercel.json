@@ -1,3 +1,11 @@
 {
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "squad-3-a3.vercel.app" }],
+      "destination": "https://rendeleite.vercel.app/:path*",
+      "permanent": false
+    }
+  ]
 }

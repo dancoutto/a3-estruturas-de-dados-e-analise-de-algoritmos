@@ -1,0 +1,3 @@
+Extraia este zip DENTRO da pasta do repositorio (a que tem public/ e python/), substituindo os arquivos.
+Depois apague o arquivo antigo public/favicon.svg.
+Em seguida: git add . / git commit -m "Identidade visual RendeLeite" / git push

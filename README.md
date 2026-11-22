@@ -1,4 +1,6 @@
-# Onde o treinamento rende mais
+# RendeLeite · Onde o treinamento rende mais
+
+Identidade visual (logos e ícone) em `public/img/` e `public/favicon*`.
 
 Squad 3 · A3 · Estruturas de Dados e Análise de Algoritmos · UC HUB
 
